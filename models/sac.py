@@ -108,12 +108,14 @@ class SAC(nn.Module):
         self.device = device
         self.start_timesteps = kwargs['start_timesteps'] if kwargs['start_timesteps'] is not None else 5000
         self.timesteps_per_epoch = kwargs['timesteps_per_epoch'] if kwargs['timesteps_per_epoch'] is not None else 1
+        self.policy_update_freq = kwargs['policy_update_freq'] if kwargs['policy_update_freq'] is not None else 1
         self.batch_size = kwargs['batch_size'] if kwargs['batch_size'] is not None else 128
         self.loss = SAC_loss(kwargs['alpha'] if kwargs['alpha'] is not None else 0.1)
 
 
     def run_iter(self, *args, **kwargs):
         env = kwargs['env']
+        n_iterations = kwargs['n_iterations']
         if len(self.exp_replay) < self.start_timesteps:
             _, interaction_state = play_and_record(interaction_state, self.random_actor, env, self.exp_replay, self.timesteps_per_epoch)
             return
@@ -139,15 +141,12 @@ class SAC(nn.Module):
         q_values_1 = self.critic_1.get_qvalues(states, actions)
         q_values_2 = self.critic_2.get_qvalues(states, actions)
         loss_1, loss_2 = self.loss(q_values_1, q_values_2)
-        # optimize("critic1", self.critic_1, self.optimizer_critic_1, critic1_loss)
+        optimize("critic1", self.critic_1, self.optimizer_critic_1, loss_1)
+        optimize("critic2", self.critic_2, self.optimizer_critic_2, loss_2)
 
-        # critic2_loss = mse(critic_target, critic2.get_qvalues(states, actions))
-        # optimize("critic2", self.critic_2, self.optimizer_critic_2, critic2_loss)
-
-        # if n_iterations % policy_update_freq == 0:
-        #     actor_loss = compute_actor_loss(states, alpha)
-        #     optimize("actor", self.actor, self.optimizer_actor, actor_loss)
-
-        #     # update target networks
-        #     update_target_networks(critic1, target_critic1)
-        #     update_target_networks(critic2, target_critic2)
+        if n_iterations % self.policy_update_freq == 0:
+            actor_loss = compute_actor_loss_sac(self.actor, self.critic_1, self.critic_2, states, self.alpha)
+            optimize("actor", self.actor, self.optimizer_actor, actor_loss)
+            # update target networks
+            update_target_networks(self.critic_1, self.target_critic_1)
+            update_target_networks(self.critic_2, self.target_critic_2)
