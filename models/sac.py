@@ -3,7 +3,7 @@ import torch.nn as nn
 import numpy as np
 from torch.distributions import Normal
 from utils import ReplayBuffer
-from random_actor import RandomActor
+from models import RandomActor
 from utils import play_and_record, update_target_networks, optimize
 from losses import SAC_loss, compute_actor_loss_sac
 
@@ -103,7 +103,7 @@ class SAC(nn.Module):
         self.optimizer_actor = torch.optim.Adam(self.actor.parameters(), lr=lr)
         self.optimizer_critic_1 = torch.optim.Adam(self.critic_1.parameters(), lr=lr)
         self.optimizer_critic_2 = torch.optim.Adam(self.critic_2.parameters(), lr=lr)
-        self.random_actor = RandomActor().to(self.device)
+        self.random_actor = RandomActor(kwargs["env"]).to(self.device)
         self.exp_replay = ReplayBuffer(buffer_size)
         self.device = device
         self.start_timesteps = kwargs['start_timesteps'] if kwargs['start_timesteps'] is not None else 5000

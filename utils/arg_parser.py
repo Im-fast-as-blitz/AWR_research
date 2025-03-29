@@ -6,7 +6,7 @@ import json
 
 def get_model_config(model_name):
     try:
-        with open(f'{model_name}.json', 'r', encoding='utf-8') as file:
+        with open(f'../configs/{model_name}.json', 'r', encoding='utf-8') as file:
             data = json.load(file)
         return data
     except FileNotFoundError:
